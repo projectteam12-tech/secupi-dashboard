@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: secupi_postgres_prod
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - secupi_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: secupi_redis_prod
+    restart: unless-stopped
+    networks:
+      - secupi_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: secupi_backend_prod
+    command: gunicorn secupi.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120 --access-logfile - --error-logfile -
+    volumes:
+      - backend_static_prod:/app/staticfiles
+      - backend_media_prod:/app/media
+    environment:
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    networks:
+      - secupi_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: secupi_frontend_prod
+    volumes:
+      - frontend_build_prod:/app/dist
+    restart: unless-stopped
+    networks:
+      - secupi_network
+
+  nginx:
+    image: nginx:alpine
+    container_name: secupi_nginx_prod
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - backend_static_prod:/static:ro
+      - backend_media_prod:/media:ro
+      - frontend_build_prod:/usr/share/nginx/html:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+    networks:
+      - secupi_network
+
+volumes:
+  postgres_data_prod:
+  backend_static_prod:
+  backend_media_prod:
+  frontend_build_prod:
+
+networks:
+  secupi_network:
+    driver: bridge
+
+
+

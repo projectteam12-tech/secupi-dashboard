@@ -1,0 +1,100 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: secupi_postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-secupi_db}
+      POSTGRES_USER: ${DB_USER:-secupi_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secupi_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-secupi_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: secupi_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: secupi_backend
+    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput || true && gunicorn secupi.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120 --access-logfile - --error-logfile -"
+    volumes:
+      - ./backend:/app
+      - backend_static:/app/staticfiles
+      - backend_media:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_NAME=${DB_NAME:-secupi_db}
+      - DB_USER=${DB_USER:-secupi_user}
+      - DB_PASSWORD=${DB_PASSWORD:-secupi_password}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    env_file:
+      - ./backend/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: secupi_frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+      - VITE_WS_URL=${VITE_WS_URL:-ws://localhost:8000}
+    env_file:
+      - ./frontend/.env
+    depends_on:
+      - backend
+    command: npm run dev -- --host 0.0.0.0
+
+  nginx:
+    image: nginx:alpine
+    container_name: secupi_nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - backend_static:/static:ro
+      - backend_media:/media:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  postgres_data:
+  backend_static:
+  backend_media:
+
+
