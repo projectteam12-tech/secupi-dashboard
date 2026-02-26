@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import { format } from 'date-fns'
 import api from '../services/api'
 import Table from '../components/Table'
@@ -7,6 +8,8 @@ import FilterBar from '../components/FilterBar'
 import wsService from '../services/websocket'
 
 const Alerts = () => {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin' || user?.is_superuser
   const [alerts, setAlerts] = useState([])
   const [selectedAlert, setSelectedAlert] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -60,6 +63,8 @@ const Alerts = () => {
     }
   }
 
+
+
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }))
     setPage(1)
@@ -80,6 +85,7 @@ const Alerts = () => {
       key: 'alert_type',
       label: 'Alert Type',
       type: 'select',
+      value: filters.alert_type,
       options: [
         { value: 'port_scan', label: 'Port Scan' },
         { value: 'brute_force', label: 'Brute Force' },
@@ -92,6 +98,7 @@ const Alerts = () => {
       key: 'severity',
       label: 'Severity',
       type: 'select',
+      value: filters.severity,
       options: [
         { value: 'low', label: 'Low' },
         { value: 'medium', label: 'Medium' },
@@ -103,6 +110,7 @@ const Alerts = () => {
       key: 'status',
       label: 'Status',
       type: 'select',
+      value: filters.status,
       options: [
         { value: 'open', label: 'Open' },
         { value: 'resolved', label: 'Resolved' },
@@ -127,13 +135,12 @@ const Alerts = () => {
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{alert.src_ip}</td>
       <td className="px-6 py-4 whitespace-nowrap">
         <span
-          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-            alert.status === 'open'
-              ? 'bg-red-100 text-red-800'
-              : alert.status === 'resolved'
+          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${alert.status === 'open'
+            ? 'bg-red-100 text-red-800'
+            : alert.status === 'resolved'
               ? 'bg-green-100 text-green-800'
               : 'bg-gray-100 text-gray-800'
-          }`}
+            }`}
         >
           {alert.status}
         </span>
@@ -145,7 +152,7 @@ const Alerts = () => {
         >
           View
         </button>
-        {alert.status === 'open' && (
+        {isAdmin && alert.status === 'open' && (
           <button
             onClick={() => handleResolve(alert.id)}
             className="text-green-600 hover:text-green-900"
@@ -153,6 +160,7 @@ const Alerts = () => {
             Resolve
           </button>
         )}
+
       </td>
     </tr>
   )

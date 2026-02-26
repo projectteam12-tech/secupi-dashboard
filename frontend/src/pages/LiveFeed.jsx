@@ -60,17 +60,20 @@ const LiveFeed = () => {
       label: 'Source IP',
       type: 'text',
       placeholder: 'Filter by source IP',
+      value: filters.src_ip,
     },
     {
       key: 'dst_ip',
       label: 'Destination IP',
       type: 'text',
       placeholder: 'Filter by destination IP',
+      value: filters.dst_ip,
     },
     {
       key: 'proto',
       label: 'Protocol',
       type: 'select',
+      value: filters.proto,
       options: [
         { value: 'TCP', label: 'TCP' },
         { value: 'UDP', label: 'UDP' },
@@ -83,6 +86,7 @@ const LiveFeed = () => {
       key: 'action',
       label: 'Action',
       type: 'select',
+      value: filters.action,
       options: [
         { value: 'allow', label: 'Allow' },
         { value: 'block', label: 'Block' },
@@ -104,13 +108,12 @@ const LiveFeed = () => {
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{log.packet_size}</td>
       <td className="px-6 py-4 whitespace-nowrap">
         <span
-          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-            log.action === 'allow'
+          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${log.action === 'allow'
               ? 'bg-green-100 text-green-800'
               : log.action === 'block'
-              ? 'bg-red-100 text-red-800'
-              : 'bg-yellow-100 text-yellow-800'
-          }`}
+                ? 'bg-red-100 text-red-800'
+                : 'bg-yellow-100 text-yellow-800'
+            }`}
         >
           {log.action}
         </span>

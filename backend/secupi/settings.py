@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'apps.firewall',
     'apps.ml',
     'apps.dashboard',
+    'apps.settings',
 ]
 
 MIDDLEWARE = [
@@ -173,6 +174,6 @@ if not DEBUG:
     X_FRAME_OPTIONS = 'DENY'
 
 # Admin Registration Key (for admin signup)
-ADMIN_REGISTRATION_KEY = config('ADMIN_REGISTRATION_KEY', default='admin-secret-key-change-in-production')
+ADMIN_REGISTRATION_KEY = config('ADMIN_REGISTRATION_KEY', default='admin')
 
 

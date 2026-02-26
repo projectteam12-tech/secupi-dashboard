@@ -15,6 +15,7 @@ urlpatterns = [
     path('api/dashboard/', include('apps.dashboard.urls')),
     path('api/firewall/', include('apps.firewall.urls')),
     path('api/ml/', include('apps.ml.urls')),
+    path('api/settings/', include('apps.settings.urls')),
     path('api/health/', dashboard_views.health, name='health'),
 ]
 
